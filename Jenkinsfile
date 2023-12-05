@@ -14,17 +14,17 @@ pipeline {
     }
     stage('Build') {
       steps {
-        sh 'cat ./Jenkinsfile'
+        sh 'mvn clean package'
       }
     }
     stage('Test') {
       steps {
-        echo 'Jenkinsfile steping'
+        echo 'mvn test'
       }
     }
     stage('Deploy') {
       steps {
-        deploy adapters: [tomcat9(credentialsId: 'admin', url: 'http://43.201.152.200:8080/')], contextPath: null, war: 'path/to/war'
+        deploy adapters: [tomcat9(credentialsId: 'tomcat-manager', url: 'http://43.201.152.200:8080/')], contextPath: null, war: 'target/hello-world.war'
       }
     }
   }
