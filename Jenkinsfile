@@ -14,12 +14,12 @@ pipeline {
     }
     stage('Build') {
       steps {
-        mvn 'clean install'
+        sh 'mvn clean install'
       }
     }
     stage('Test') {
       steps {
-        echo 'mvn test'
+        sh 'mvn test'
       }
     }
     stage('Deploy') {
