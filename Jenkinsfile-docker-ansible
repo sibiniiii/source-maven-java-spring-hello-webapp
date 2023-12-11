@@ -1,0 +1,71 @@
+pipeline {
+  agent none
+
+  stages {
+    stage('Checkout') {
+      agent any
+      steps {
+        git branch: 'main', url: 'https://github.com/sibiniiii/source-maven-java-spring-hello-webapp.git'
+      }
+    }
+    stage('Build') {
+      agent {
+        docker { image 'maven:3-openjdk-11' }
+      }
+      steps {
+        sh 'mvn clean package -DskipTests=true'
+      }
+    }
+    stage('Test') {
+      agent {
+        docker { image 'maven:3-openjdk-11' }
+      }
+      steps {
+        sh 'mvn test'
+      }
+    }
+    stage('Build Docker Image') {
+      agent any
+      steps {
+        sh 'docker image build -t myhello .'
+      }
+    }
+    stage('Tag Docker Image') {
+      agent any
+      steps {
+        sh 'docker image tag myhello dyana165/myhello:$BUILD_NUMBER'
+	sh 'docker image tag myhello dyana165/myhello:latest'
+      }
+    }
+
+    stage('Publish Docker Image') {
+      agent any
+      steps {
+        withDockerRegistry(credentialsId: 'docker-hub-token', url: 'https://index.docker.io/v1/') {
+          sh 'docker image push dyana165/myhello:$BUILD_NUMBER'
+	  sh 'docker image push dyana165/myhello:latest'  
+        }
+      }
+    }
+    stage('Run Docker Container') {
+      agent {
+        docker { image 'docker:dind' }
+      }
+      steps {
+        sh 'docker -H tcp://3.38.173.110:2376 container run --detach --name myhello -p 80:8080 dyana165/myhello:$BUILD_NUMBER'
+      }
+    }
+    stage('Run Docker Container') {
+      agent {
+        docker { 
+          image 'dyana165/jenkins-ansible'
+          args '-u 0:0 -e DOCKER_HOST=tcp://172.31.16.137:2375'
+        }
+      }
+      steps {
+        ansiblePlaybook(playbook: 'docker-container-deploy.yaml')
+      }
+    }
+
+  }
+}
